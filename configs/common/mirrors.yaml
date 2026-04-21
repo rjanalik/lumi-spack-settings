@@ -1,0 +1,4 @@
+mirrors:
+  lumi-buildcache:
+    url: file:///appl/lumi/spack-buildcache
+    signed: false

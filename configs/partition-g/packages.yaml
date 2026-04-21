@@ -1,0 +1,158 @@
+# LUMI-G-specific config — GPU defaults, the AMD compiler, and the ROCm/HIP stack.
+packages:
+  all:
+    # target=zen3 from common; partition scope replaces the list.
+    require:
+      - target=zen3
+      - '+rocm amdgpu_target=gfx90a'
+
+  # Cray libfabric is ROCm-capable (--enable-rocr; HSA dlopened at runtime).
+  libfabric:
+    buildable: false
+    externals:
+      - spec: libfabric@1.22.0 fabrics=cxi,shm +rocm amdgpu_target=gfx90a
+        prefix: /opt/cray/libfabric/1.22.0
+
+  # +rocm and amdgpu_target must be set together — ROCmPackage declares
+  # `conflicts(amdgpu_target=none, when=+rocm)`.
+  # @4.2: avoids 3.4.3, whose Hydra uses the pre-23.11 slurm hostlist_t API.
+  mpich:
+    variants: device=ch4 netmod=ofi
+    require:
+      - '@4.2:'
+      - ^libfabric
+      - '+rocm amdgpu_target=gfx90a'
+  openmpi:
+    variants: fabrics=ofi +xpmem schedulers=slurm
+    require:
+      - ^libfabric
+      - ^xpmem
+      - '+rocm amdgpu_target=gfx90a'
+
+  # llvm-amdgpu doubles as the AMD compiler (amdclang/amdclang++/amdflang);
+  # spec as %llvm-amdgpu@6.3.4 to use it.
+  llvm-amdgpu:
+    buildable: false
+    externals:
+      - spec: llvm-amdgpu@6.3.4 languages=c,c++,fortran
+        prefix: /opt/rocm-6.3.4
+        extra_attributes:
+          compilers:
+            c: /opt/rocm-6.3.4/bin/amdclang
+            cxx: /opt/rocm-6.3.4/bin/amdclang++
+            fortran: /opt/rocm-6.3.4/bin/amdflang
+
+  # ROCm/HIP stack (from /opt/rocm-6.3.4/)
+  hip:
+    buildable: false
+    externals:
+      - spec: hip@6.3.4
+        prefix: /opt/rocm-6.3.4
+
+  rocblas:
+    buildable: false
+    externals:
+      - spec: rocblas@6.3.4
+        prefix: /opt/rocm-6.3.4
+
+  hipblas:
+    buildable: false
+    externals:
+      - spec: hipblas@6.3.4
+        prefix: /opt/rocm-6.3.4
+
+  rocfft:
+    buildable: false
+    externals:
+      - spec: rocfft@6.3.4
+        prefix: /opt/rocm-6.3.4
+
+  rocsolver:
+    buildable: false
+    externals:
+      - spec: rocsolver@6.3.4
+        prefix: /opt/rocm-6.3.4
+
+  rocsparse:
+    buildable: false
+    externals:
+      - spec: rocsparse@6.3.4
+        prefix: /opt/rocm-6.3.4
+
+  hipsparse:
+    buildable: false
+    externals:
+      - spec: hipsparse@6.3.4
+        prefix: /opt/rocm-6.3.4
+
+  rocrand:
+    buildable: false
+    externals:
+      - spec: rocrand@6.3.4
+        prefix: /opt/rocm-6.3.4
+
+  rocprim:
+    buildable: false
+    externals:
+      - spec: rocprim@6.3.4
+        prefix: /opt/rocm-6.3.4
+
+  rocthrust:
+    buildable: false
+    externals:
+      - spec: rocthrust@6.3.4
+        prefix: /opt/rocm-6.3.4
+
+  rccl:
+    buildable: false
+    externals:
+      - spec: rccl@6.3.4
+        prefix: /opt/rocm-6.3.4
+
+  hipfft:
+    buildable: false
+    externals:
+      - spec: hipfft@6.3.4
+        prefix: /opt/rocm-6.3.4
+
+  hipcub:
+    buildable: false
+    externals:
+      - spec: hipcub@6.3.4
+        prefix: /opt/rocm-6.3.4
+
+  hsa-rocr-dev:
+    buildable: false
+    externals:
+      - spec: hsa-rocr-dev@6.3.4
+        prefix: /opt/rocm-6.3.4
+
+  comgr:
+    buildable: false
+    externals:
+      - spec: comgr@6.3.4
+        prefix: /opt/rocm-6.3.4
+
+  rocm-smi-lib:
+    buildable: false
+    externals:
+      - spec: rocm-smi-lib@6.3.4
+        prefix: /opt/rocm-6.3.4
+
+  rocminfo:
+    buildable: false
+    externals:
+      - spec: rocminfo@6.3.4
+        prefix: /opt/rocm-6.3.4
+
+  rocprofiler-dev:
+    buildable: false
+    externals:
+      - spec: rocprofiler-dev@6.3.4
+        prefix: /opt/rocm-6.3.4
+
+  roctracer-dev:
+    buildable: false
+    externals:
+      - spec: roctracer-dev@6.3.4
+        prefix: /opt/rocm-6.3.4

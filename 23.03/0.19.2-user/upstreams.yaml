@@ -1,4 +1,0 @@
-upstreams:
-  lumi:
-    install_tree: /appl/lumi/spack/23.03/0.19.2/opt/spack
- 

@@ -1,0 +1,10 @@
+config:
+  build_jobs: 32
+  install_tree:
+    root: $SPACK_USER_PREFIX/install
+    projections:
+      all: '{name}-{version}-{hash:7}'
+    padded_length: 128
+  source_cache: $SPACK_USER_PREFIX/cache
+  misc_cache: $SPACK_USER_PREFIX/cache
+  environments_root: $SPACK_USER_PREFIX/environments

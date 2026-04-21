@@ -1,0 +1,5 @@
+concretizer:
+  targets:
+    # Login nodes (UAN) are Zen2; compute nodes are Zen3. Allow concretizing
+    # for Zen3 from a Zen2 host so binaries always target the compute nodes.
+    host_compatible: false

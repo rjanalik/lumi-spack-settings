@@ -1,6 +1,0 @@
-config:
-    build_jobs: 32
-    install_path_scheme: '{name}-{version}-{hash:7}'
-    install_missing_compilers: false
-    install_tree: /appl/lumi/spack/22.08/0.19.0/opt/spack
-
