@@ -11,7 +11,7 @@
 # explicit path to override (e.g. for testing against a fake staging tree).
 #
 # Auto-discovers under the staging root:
-#     lumi-spack-settings/   ->  <dest>/spack/
+#     lumi-spack-settings/   ->  <dest>/lumi-spack-settings/
 #     spack-[0-9]*/          ->  <dest>/<same-name>/   (e.g. spack-1.1)
 # Anything else is ignored (and listed in the prompt for visibility).
 # spack-buildcache is intentionally out of scope — different source and
@@ -91,8 +91,8 @@ echo "Destinations: ${destinations[*]}"
 echo "Plan:"
 
 if [[ -n "$settings_src" ]]; then
-    echo "  $settings_src/  ->  <dest>/spack/"
-    dst="$preview_dest/spack"
+    echo "  $settings_src/  ->  <dest>/lumi-spack-settings/"
+    dst="$preview_dest/lumi-spack-settings"
     if [[ -d "$dst" ]]; then
         out=$(rsync --archive --dry-run --itemize-changes --delete \
                     "${excludes[@]}" --exclude='.git' \
@@ -160,8 +160,8 @@ overall_fail=0
 
 if [[ -n "$settings_src" ]]; then
     echo
-    echo "=== Syncing lumi-spack-settings -> spack/ ==="
-    run_one_tree "$settings_src" spack || overall_fail=1
+    echo "=== Syncing lumi-spack-settings ==="
+    run_one_tree "$settings_src" lumi-spack-settings || overall_fail=1
 fi
 
 for s in "${spack_srcs[@]}"; do
@@ -176,7 +176,7 @@ done
 echo
 echo "=== Checking symlinks on $preview_short ==="
 subs=()
-[[ -n "$settings_src" ]] && subs+=(spack)
+[[ -n "$settings_src" ]] && subs+=(lumi-spack-settings)
 for s in "${spack_srcs[@]}"; do subs+=("$(basename "$s")"); done
 
 broken=()

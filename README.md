@@ -6,7 +6,7 @@ This repository contains the configuration for the central Spack instance under 
 
 ```
 /appl/lumi/
-├── spack/                       # ← contents of this repo
+├── lumi-spack-settings/         # ← contents of this repo
 │   ├── configs/
 │   │   ├── common/
 │   │   ├── partition-c/
@@ -19,7 +19,7 @@ This repository contains the configuration for the central Spack instance under 
 └── spack-buildcache/            # binary build cache (filesystem mirror)
 ```
 
-Lmod is configured (outside this repo, in the LUMI base setup) to find modulefiles under `/appl/lumi/spack/modules/`.
+Lmod is configured (outside this repo, in the LUMI base setup) to find modulefiles under `/appl/lumi/lumi-spack-settings/modules/`.
 
 ## User-facing usage
 
@@ -190,14 +190,14 @@ Patch updates: `git -C /flash/<...>/staging/spack-1.1 pull` then re-run the depl
 
 ### Permissions
 
-`/appl/lumi/spack/` and `/appl/lumi/spack-<ver>/` are owned by the Spack support group; members push updates, end users only read. LUMI's default personal umask is 077 (files 600, dirs 700) — clone or rsync with that and end users can neither read nor traverse the tree, so `module load spack-cpu/<ver>` fails on `setup-env.sh` and `bin/spack`.
+`/appl/lumi/lumi-spack-settings/` and `/appl/lumi/spack-<ver>/` are owned by the Spack support group; members push updates, end users only read. LUMI's default personal umask is 077 (files 600, dirs 700) — clone or rsync with that and end users can neither read nor traverse the tree, so `module load spack-cpu/<ver>` fails on `setup-env.sh` and `bin/spack`.
 
 Set `umask 002` in the deploying shell before any `git clone` in the staging area (and before any direct write into `/appl/lumi/`). That yields files 664 and dirs 775 — group writes, world reads and traverses. The deploy script also sets `umask 002` internally as a backstop. `rsync -a` preserves source perms, so getting it right on `/flash` is what propagates to the destinations.
 
 For first-time setup of each destination, chgrp to the support group and setgid the directories so subsequent rsyncs and direct writes inherit the group regardless of the depositor's primary group:
 
 ```bash
-for d in /pfs/lustrep{1,2,3,4}/appl/lumi/spack /pfs/lustrep{1,2,3,4}/appl/lumi/spack-<ver>; do
+for d in /pfs/lustrep{1,2,3,4}/appl/lumi/lumi-spack-settings /pfs/lustrep{1,2,3,4}/appl/lumi/spack-<ver>; do
     chgrp -R <support-group> "$d"
     find "$d" -type d -exec chmod g+s {} +
 done
