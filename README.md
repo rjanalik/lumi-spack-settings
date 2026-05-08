@@ -114,9 +114,10 @@ Add the external in `configs/partition-g/packages.yaml` only, under the package 
 
 ### Bumping the Spack version
 
-1. **Clone the Spack release branch** at `/appl/lumi/spack-<version>/`. Use a shallow clone of the release branch to avoid pulling unnecessary history and tags:
+1. **Clone the Spack release branch** at `/appl/lumi/spack-<version>/`. Use a shallow clone of the release branch to avoid pulling unnecessary history and tags. Set `umask 002` first (see [Permissions](#permissions)) so end users can read the tree:
 
    ```bash
+   umask 002
    git clone --depth 1 --branch releases/v1.1 \
        https://github.com/spack/spack.git /appl/lumi/spack-1.1
    ```
@@ -151,7 +152,24 @@ Single cache for both partitions — hash-based matching prevents cross-architec
 
 ## Deployment
 
-There is no deploy script in this repo. Files are synced manually from this repository into `/appl/lumi/spack/`. The two `modules/spack-{cpu,gpu}/<ver>.lua` files are symlinks into `lib/`, so the sync must preserve symlinks (`rsync -a` or `rsync -l`, never `rsync -L`). After syncing, run through the usage examples above with `SPACK_USER_PREFIX` pointed at a scratch location (e.g. `/scratch/<project>/<user>/spack-test`) to confirm the deploy is healthy.
+There is no deploy script in this repo. Files are synced manually from this repository into `/appl/lumi/spack/`. The two `modules/spack-{cpu,gpu}/<ver>.lua` files are symlinks into `lib/`, so the sync must preserve symlinks (`rsync -a` or `rsync -l`, never `rsync -L`).
+
+### Permissions
+
+`/appl/lumi/spack/` and `/appl/lumi/spack-<ver>/` are owned by the Spack support group; members push updates, end users only read. LUMI's default personal umask is 077 (files 600, dirs 700) — clone or rsync with that and end users can neither read nor traverse the tree, so `module load spack-cpu/<ver>` fails on `setup-env.sh` and `bin/spack`.
+
+Set `umask 002` in the deploying shell before any `git clone`, `rsync`, or `cp` into `/appl/lumi/`. That yields files 664 and dirs 775 — group writes, world reads and traverses. Then chgrp the tree to the support group and setgid the directories so subsequent writes (e.g. `git pull` for patch releases) inherit the group regardless of the depositor's primary group:
+
+```bash
+umask 002
+# ... clone / rsync ...
+chgrp -R <support-group> /appl/lumi/spack /appl/lumi/spack-<ver>
+find /appl/lumi/spack /appl/lumi/spack-<ver> -type d -exec chmod g+s {} +
+```
+
+### Verifying the deploy
+
+Run through the usage examples above with `SPACK_USER_PREFIX` pointed at a scratch location (e.g. `/scratch/<project>/<user>/spack-test`) to confirm the deploy is healthy.
 
 ## Verifying configuration
 
