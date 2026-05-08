@@ -114,25 +114,34 @@ Add the external in `configs/partition-g/packages.yaml` only, under the package 
 
 ### Bumping the Spack version
 
-1. **Clone the Spack release branch** at `/appl/lumi/spack-<version>/`. Use a shallow clone of the release branch to avoid pulling unnecessary history and tags. Set `umask 002` first (see [Permissions](#permissions)) so end users can read the tree:
+All edits happen in the `/flash` staging area (see [Deployment](#deployment)) and are picked up by the next deploy run. Nothing is touched directly under `/appl/lumi/`.
+
+1. In the staging area, clone the new Spack release branch as a sibling of `lumi-spack-settings/`. Shallow clone keeps history and tags out:
 
    ```bash
    umask 002
-   git clone --depth 1 --branch releases/v1.1 \
-       https://github.com/spack/spack.git /appl/lumi/spack-1.1
+   cd /flash/<project>/<user>/staging
+   git clone --depth 1 --branch releases/v<new> \
+       https://github.com/spack/spack.git spack-<new>
    ```
 
-   A release branch (e.g. `releases/v1.1`) tracks every patch release for that minor version, so `git -C /appl/lumi/spack-1.1 pull` picks up 1.1.2, 1.1.3, … in place — no re-clone, no module rename.
-2. Symlink the new version under both partitions:
+   A release branch (e.g. `releases/v1.1`) tracks every patch release for that minor version, so future patch updates are `git -C /flash/<...>/staging/spack-<new> pull` followed by another deploy — no re-clone, no module rename.
+
+2. In the staged copy of this repo, add the modulefile symlinks under both partitions:
 
    ```bash
+   cd /flash/<project>/<user>/staging/lumi-spack-settings
    ln -s ../../lib/spack-module.lua modules/spack-cpu/<new>.lua
    ln -s ../../lib/spack-module.lua modules/spack-gpu/<new>.lua
    ```
 
    The file name is what Lmod parses as the module version; the symlink target is always the same shared implementation.
+
 3. Verify the new version concretizes against the existing configs. Minor/patch bumps generally do; major bumps may require config schema migrations.
-4. When the old version is decommissioned, delete its `.lua` modulefiles and the Spack source tree.
+
+4. Run the deploy script (see [Deployment](#deployment)).
+
+5. Decommissioning an old version: delete its `.lua` modulefiles in the staging repo and remove the staging `spack-<old>/` clone, then deploy. The deploy script doesn't touch siblings absent from staging, so `rm -rf /pfs/lustrep[1-4]/appl/lumi/spack-<old>` is a separate manual step.
 
 ### Pushing to the build cache
 
@@ -152,19 +161,46 @@ Single cache for both partitions — hash-based matching prevents cross-architec
 
 ## Deployment
 
-There is no deploy script in this repo. Files are synced manually from this repository into `/appl/lumi/spack/`. The two `modules/spack-{cpu,gpu}/<ver>.lua` files are symlinks into `lib/`, so the sync must preserve symlinks (`rsync -a` or `rsync -l`, never `rsync -L`).
+Two-step workflow: stage on uan06 (`/flash`), then run the deploy script.
+
+1. **Stage.** Clone this repo and the Spack source tree side by side under one staging directory. `umask 002` matters (see [Permissions](#permissions)) — `rsync -a` preserves source perms, so the staging tree must already be group-readable:
+
+   ```bash
+   umask 002
+   mkdir -p /flash/<project>/<user>/staging
+   cd /flash/<project>/<user>/staging
+   git clone https://github.com/Lumi-supercomputer/lumi-spack-settings.git
+   git clone --depth 1 --branch releases/v1.1 \
+       https://github.com/spack/spack.git spack-1.1
+   ```
+
+   Multiple `spack-<ver>/` clones can coexist when several Spack versions are supported in parallel.
+
+2. **Deploy.** Run the script from the staged repo:
+
+   ```bash
+   /flash/<project>/<user>/staging/lumi-spack-settings/deployment/sync_to_appl_lumi.sh
+   ```
+
+   It auto-discovers `lumi-spack-settings/` and any `spack-[0-9]*/` siblings under the staging root, previews the deletion impact against lustrep1, prompts for confirmation, then rsyncs in parallel to all four `/pfs/lustrep[1-4]/appl/lumi/` with `--delete`. Symlink targets are checked post-sync. Logs land in `~/appl_sync_logs/`.
+
+   `spack-buildcache/` is not in scope — see [Pushing to the build cache](#pushing-to-the-build-cache).
+
+Patch updates: `git -C /flash/<...>/staging/spack-1.1 pull` then re-run the deploy script.
 
 ### Permissions
 
 `/appl/lumi/spack/` and `/appl/lumi/spack-<ver>/` are owned by the Spack support group; members push updates, end users only read. LUMI's default personal umask is 077 (files 600, dirs 700) — clone or rsync with that and end users can neither read nor traverse the tree, so `module load spack-cpu/<ver>` fails on `setup-env.sh` and `bin/spack`.
 
-Set `umask 002` in the deploying shell before any `git clone`, `rsync`, or `cp` into `/appl/lumi/`. That yields files 664 and dirs 775 — group writes, world reads and traverses. Then chgrp the tree to the support group and setgid the directories so subsequent writes (e.g. `git pull` for patch releases) inherit the group regardless of the depositor's primary group:
+Set `umask 002` in the deploying shell before any `git clone` in the staging area (and before any direct write into `/appl/lumi/`). That yields files 664 and dirs 775 — group writes, world reads and traverses. The deploy script also sets `umask 002` internally as a backstop. `rsync -a` preserves source perms, so getting it right on `/flash` is what propagates to the destinations.
+
+For first-time setup of each destination, chgrp to the support group and setgid the directories so subsequent rsyncs and direct writes inherit the group regardless of the depositor's primary group:
 
 ```bash
-umask 002
-# ... clone / rsync ...
-chgrp -R <support-group> /appl/lumi/spack /appl/lumi/spack-<ver>
-find /appl/lumi/spack /appl/lumi/spack-<ver> -type d -exec chmod g+s {} +
+for d in /pfs/lustrep{1,2,3,4}/appl/lumi/spack /pfs/lustrep{1,2,3,4}/appl/lumi/spack-<ver>; do
+    chgrp -R <support-group> "$d"
+    find "$d" -type d -exec chmod g+s {} +
+done
 ```
 
 ### Verifying the deploy
