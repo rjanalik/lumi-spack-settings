@@ -183,9 +183,9 @@ broken=()
 for sub in "${subs[@]}"; do
     path="$preview_dest/$sub"
     [[ -d "$path" ]] || continue
-    while IFS= read -r line; do
-        broken+=("$line")
-    done < <(find -L "$path" -xtype l 2>/dev/null)
+    while IFS= read -r link; do
+        [[ -e "$link" ]] || broken+=("$link")
+    done < <(find "$path" -type l 2>/dev/null)
 done
 
 if [[ ${#broken[@]} -gt 0 ]]; then
