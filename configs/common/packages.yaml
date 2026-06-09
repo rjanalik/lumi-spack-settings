@@ -1,0 +1,98 @@
+packages:
+  all:
+    require:
+      - target=zen3
+    prefer:
+      - '%gcc@14.3.0'
+    providers:
+      blas: [openblas]
+      lapack: [openblas]
+      mpi: [mpich, openmpi]
+
+  # Compilers
+  gcc:
+    buildable: false
+    externals:
+      # System GCC (SLES 15)
+      - spec: gcc@7.5.0 languages=c,c++,fortran
+        prefix: /usr
+        extra_attributes:
+          compilers:
+            c: /usr/bin/gcc
+            cxx: /usr/bin/g++
+            fortran: /usr/bin/gfortran
+
+      # Cray PE GCC 12.2.0
+      - spec: gcc@12.2.0 languages=c,c++,fortran
+        prefix: /opt/cray/pe/gcc/12.2.0
+        extra_attributes:
+          compilers:
+            c: /opt/cray/pe/gcc/12.2.0/bin/gcc
+            cxx: /opt/cray/pe/gcc/12.2.0/bin/g++
+            fortran: /opt/cray/pe/gcc/12.2.0/bin/gfortran
+          environment:
+            prepend_path:
+              LD_LIBRARY_PATH: /opt/cray/pe/gcc/12.2.0/snos/lib64
+              PKG_CONFIG_PATH: /opt/cray/pe/gcc/12.2.0/snos/lib64/pkgconfig
+
+      # Cray PE GCC-native 14
+      - spec: gcc@14.3.0 languages=c,c++,fortran
+        prefix: /opt/cray/pe/gcc-native/14
+        extra_attributes:
+          compilers:
+            c: /opt/cray/pe/gcc-native/14/bin/gcc
+            cxx: /opt/cray/pe/gcc-native/14/bin/g++
+            fortran: /opt/cray/pe/gcc-native/14/bin/gfortran
+
+  cce:
+    buildable: false
+    externals:
+      # Cray Compiler Environment — CPE 25.03
+      - spec: cce@19.0.0 languages=c,c++,fortran
+        prefix: /opt/cray/pe/cce/19.0.0
+        extra_attributes:
+          compilers:
+            c: /opt/cray/pe/cce/19.0.0/bin/craycc
+            cxx: /opt/cray/pe/cce/19.0.0/bin/crayCC
+            fortran: /opt/cray/pe/cce/19.0.0/bin/crayftn
+          environment:
+            set:
+              RFE_811452_DISABLE: '1'
+            prepend_path:
+              LD_LIBRARY_PATH: /opt/cray/pe/cce/19.0.0/cce/x86_64/lib
+
+      # Cray Compiler Environment — CPE 25.09
+      - spec: cce@20.0.0 languages=c,c++,fortran
+        prefix: /opt/cray/pe/cce/20.0.0
+        extra_attributes:
+          compilers:
+            c: /opt/cray/pe/cce/20.0.0/bin/craycc
+            cxx: /opt/cray/pe/cce/20.0.0/bin/crayCC
+            fortran: /opt/cray/pe/cce/20.0.0/bin/crayftn
+          environment:
+            set:
+              RFE_811452_DISABLE: '1'
+            prepend_path:
+              LD_LIBRARY_PATH: /opt/cray/pe/cce/20.0.0/cce/x86_64/lib
+
+  slurm:
+    buildable: false
+    externals:
+      - spec: slurm@24.05.8
+        prefix: /usr
+
+  # System XPMEM (intra-node single-copy transfers, used by Open MPI).
+  # Library and headers live under /usr; /opt/cray/xpmem/<ver>/ is metadata.
+  xpmem:
+    buildable: false
+    externals:
+      - spec: xpmem@2.11.5
+        prefix: /usr
+
+  # Only mpich or openmpi admissible; providers: above picks the tiebreaker.
+  # mpich/openmpi themselves live in partition-{c,g}/packages.yaml — their
+  # require: lists differ per partition (GPU adds +rocm) and per-package
+  # require: lists replace, not merge, across scopes.
+  mpi:
+    require:
+      - one_of: ['mpich', 'openmpi']

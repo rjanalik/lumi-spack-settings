@@ -1,0 +1,26 @@
+modules:
+  default:
+    roots:
+      lmod: $SPACK_USER_PREFIX/modules/lmod
+    enable:
+      - lmod
+    lmod:
+      hash_length: 3
+      # Skip modules for implicit installs: externals already have authoritative
+      # system modules, and implicit deps are wired into their parent's env
+      # directly. Users wanting a module install the package explicitly.
+      exclude_implicits: true
+      projections:
+        all: '{name}/{version}-{compiler.name}-{compiler.version}'
+      # Flat layout: every compiler listed as "core" so modules land in Core/
+      # rather than <compiler>/<version>/. Cross-partition entries are harmless.
+      core_compilers:
+        - gcc@14.3.0
+        - gcc@12.2.0
+        - gcc@7.5.0
+        - cce@20.0.0
+        - cce@19.0.0
+        - llvm-amdgpu@6.3.4
+      # `::` forces full replacement of Spack's default `hierarchy: [mpi]`
+      # (without it, YAML list-merge would still add an MPI level).
+      hierarchy:: []

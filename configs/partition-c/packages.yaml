@@ -1,0 +1,21 @@
+# LUMI-C-specific config — system libfabric (Slingshot cxi provider, plain)
+# and the CPU-side mpich/openmpi build constraints.
+packages:
+  libfabric:
+    buildable: false
+    externals:
+      - spec: libfabric@1.22.0 fabrics=cxi,shm
+        prefix: /opt/cray/libfabric/1.22.0
+
+  # @4.2: avoids 3.4.3, whose Hydra uses the pre-23.11 slurm hostlist_t API.
+  mpich:
+    variants: device=ch4 netmod=ofi
+    require:
+      - '@4.2:'
+      - ^libfabric
+
+  openmpi:
+    variants: fabrics=ofi +xpmem schedulers=slurm
+    require:
+      - ^libfabric
+      - ^xpmem
